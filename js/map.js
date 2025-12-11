@@ -68,10 +68,42 @@
         }
     }
 
+    async function geocodeAddress(address) {
+        if (!address) return null;
+        try {
+            // Using OpenStreetMap Nominatim API
+            // Note: Respect their Usage Policy (max 1 req/sec). 
+            // In a production app, use a proper geocoding service / proxy.
+            const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`;
+
+            const response = await fetch(url, {
+                headers: {
+                    'Accept-Language': 'sv' // Prefer Swedish results
+                }
+            });
+
+            if (!response.ok) throw new Error('Geocoding failed');
+
+            const data = await response.json();
+
+            if (data && data.length > 0) {
+                return {
+                    lat: parseFloat(data[0].lat),
+                    lng: parseFloat(data[0].lon)
+                };
+            }
+            return null;
+        } catch (err) {
+            console.error("Geocoding error:", err);
+            return null;
+        }
+    }
+
     window.WP = window.WP || {};
     window.WP.map = {
         initMap,
         renderMarkers,
-        flyTo
+        flyTo,
+        geocodeAddress
     };
 })();
