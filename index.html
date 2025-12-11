@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Work Planner</title>
+
+    <!-- Tailwind CSS (Play CDN for prototyping/static) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#0f172a', // Slate 900
+                        accent: '#3b82f6', // Blue 500
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Leaflet CSS & JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        /* Custom scrollbar for webkit */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-50 h-screen w-screen overflow-hidden flex text-slate-800 font-sans">
+
+    <!-- Sidebar -->
+    <aside
+        class="w-64 bg-white border-r border-slate-200 flex flex-col justify-between shrink-0 z-20 shadow-sm transition-all duration-300 transform"
+        id="sidebar">
+        <!-- Logo Area -->
+        <div class="p-6 border-b border-slate-100 flex items-center gap-3">
+            <div class="bg-blue-600 text-white p-2 rounded-lg">
+                <i data-lucide="shield-check" class="w-6 h-6"></i>
+            </div>
+            <h1 class="font-bold text-xl tracking-tight text-slate-800">SecurePlan</h1>
+        </div>
+
+        <!-- Navigation -->
+        <nav class="flex-1 overflow-y-auto py-6 px-3 space-y-1">
+            <a href="#"
+                class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-blue-50 text-blue-700 font-medium transition-colors">
+                <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+                Dashboard
+            </a>
+            <a href="#"
+                class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors">
+                <i data-lucide="map" class="w-5 h-5"></i>
+                Map View
+            </a>
+            <a href="#"
+                class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors">
+                <i data-lucide="wrench" class="w-5 h-5"></i>
+                Technicians
+            </a>
+            <a href="#"
+                class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors">
+                <i data-lucide="settings" class="w-5 h-5"></i>
+                Settings
+            </a>
+        </nav>
+
+        <!-- User Profile (Bottom) -->
+        <div class="p-4 border-t border-slate-100">
+            <div class="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-50 cursor-pointer transition-colors">
+                <img src="https://ui-avatars.com/api/?name=Admin+User&background=0D8ABC&color=fff" alt="User"
+                    class="w-10 h-10 rounded-full">
+                <div class="overflow-hidden">
+                    <p class="text-sm font-medium text-slate-900 truncate">Admin User</p>
+                    <p class="text-xs text-slate-500 truncate">admin@secureplan.com</p>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 flex flex-col relative min-w-0">
+
+        <!-- Top Header (Stats / Search) -->
+        <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 shrink-0 z-10">
+            <div class="flex items-center gap-4">
+                <button id="toggleSidebar" class="p-2 -ml-2 rounded-md text-slate-500 hover:bg-slate-100 lg:hidden">
+                    <i data-lucide="menu" class="w-6 h-6"></i>
+                </button>
+                <div class="relative">
+                    <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"></i>
+                    <input type="text" placeholder="Search installations..."
+                        class="pl-10 pr-4 py-2 bg-slate-100 border-none rounded-full text-sm focus:ring-2 focus:ring-blue-500 w-64 transition-all">
+                </div>
+            </div>
+            <div class="flex items-center gap-4">
+                <button
+                    class="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg shadow-sm transition-colors"
+                    id="addInstallationBtn">
+                    <i data-lucide="plus" class="w-4 h-4"></i>
+                    New Installation
+                </button>
+            </div>
+        </header>
+
+        <!-- Content Grid (Map + Side Panel) -->
+        <div class="flex-1 relative flex overflow-hidden">
+
+            <!-- List Panel (Overlaid or Split) -->
+            <div class="w-[400px] bg-white border-r border-slate-200 flex flex-col shrink-0 absolute z-[1000] h-full shadow-xl transition-transform duration-300 -translate-x-full lg:relative lg:translate-x-0 lg:shadow-none lg:z-0"
+                id="listPanel">
+                <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-white sticky top-0 z-10">
+                    <div>
+                        <h2 class="font-bold text-slate-800">Installations</h2>
+                        <p class="text-xs text-slate-500" id="installationCount">Loading...</p>
+                    </div>
+                    <button class="p-1 rounded hover:bg-slate-100 lg:hidden" id="closeListPanel">
+                        <i data-lucide="x" class="w-5 h-5 text-slate-500"></i>
+                    </button>
+                </div>
+
+                <!-- Filters -->
+                <div class="p-2 border-b border-slate-100 flex gap-2 overflow-x-auto">
+                    <button
+                        class="px-3 py-1.5 rounded-full bg-slate-100 text-xs font-medium text-slate-600 hover:bg-slate-200 whitespace-nowrap active-filter ring-2 ring-blue-500 ring-offset-1"
+                        data-filter="all">All</button>
+                    <button
+                        class="px-3 py-1.5 rounded-full bg-white border border-slate-200 text-xs font-medium text-slate-600 hover:bg-slate-50 whitespace-nowrap"
+                        data-filter="pending">Pending</button>
+                    <button
+                        class="px-3 py-1.5 rounded-full bg-white border border-slate-200 text-xs font-medium text-slate-600 hover:bg-slate-50 whitespace-nowrap"
+                        data-filter="planned">Planned</button>
+                    <button
+                        class="px-3 py-1.5 rounded-full bg-white border border-slate-200 text-xs font-medium text-slate-600 hover:bg-slate-50 whitespace-nowrap"
+                        data-filter="completed">Completed</button>
+                </div>
+
+                <!-- List Container -->
+                <div id="installationList" class="flex-1 overflow-y-auto p-2 space-y-2 bg-slate-50">
+                    <!-- Items will be injected here -->
+                    <div class="flex items-center justify-center h-full text-slate-400">
+                        Loading...
+                    </div>
+                </div>
+            </div>
+
+            <!-- Map Container -->
+            <div class="flex-1 relative bg-slate-200">
+                <div id="map" class="absolute inset-0 z-0"></div>
+
+                <!-- Floating Toggle for List (Mobile/Tablet only usually, but good to have) -->
+                <button id="openListPanel"
+                    class="absolute bottom-6 left-6 z-[999] bg-white p-3 rounded-full shadow-lg lg:hidden">
+                    <i data-lucide="list" class="w-6 h-6 text-slate-700"></i>
+                </button>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- IDB (UMD for global access) -->
+    <script src="https://cdn.jsdelivr.net/npm/idb@8/build/umd.js"></script>
+
+    <!-- App Logic (Global Namespace) -->
+    <script>window.WP = {}; // Init Namespace</script>
+    <script src="js/db.js"></script>
+    <script src="js/map.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/app.js"></script>
+</body>
+
+</html>
