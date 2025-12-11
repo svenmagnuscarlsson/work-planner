@@ -2,6 +2,7 @@
     let currentDate = new Date();
     let currentData = [];
     let isInitialized = false;
+    let currentView = 'month'; // 'month' or 'week'
 
     function init(containerId) {
         if (isInitialized) return;
@@ -24,7 +25,15 @@
                     </button>
                 </div>
             </div>
-            <div>
+            <div class="flex items-center gap-2">
+                <div class="flex bg-slate-100 rounded-lg p-1">
+                    <button id="viewMonth" class="px-3 py-1.5 text-sm font-medium rounded-md bg-white text-blue-600 shadow-sm transition-all">
+                        Månad
+                    </button>
+                    <button id="viewWeek" class="px-3 py-1.5 text-sm font-medium rounded-md text-slate-600 hover:text-slate-800 transition-all">
+                        Vecka
+                    </button>
+                </div>
                 <button id="calToday" class="px-3 py-1.5 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
                     Idag
                 </button>
@@ -39,18 +48,46 @@
         container.appendChild(gridContainer);
 
         // Event Listeners
-        document.getElementById('calPrev').addEventListener('click', () => changeMonth(-1));
-        document.getElementById('calNext').addEventListener('click', () => changeMonth(1));
+        document.getElementById('calPrev').addEventListener('click', () => changeDate(-1));
+        document.getElementById('calNext').addEventListener('click', () => changeDate(1));
         document.getElementById('calToday').addEventListener('click', () => {
             currentDate = new Date();
             render();
         });
 
+        document.getElementById('viewMonth').addEventListener('click', () => switchView('month'));
+        document.getElementById('viewWeek').addEventListener('click', () => switchView('week'));
+
         isInitialized = true;
     }
 
-    function changeMonth(delta) {
-        currentDate.setMonth(currentDate.getMonth() + delta);
+    function switchView(view) {
+        currentView = view;
+
+        const monthBtn = document.getElementById('viewMonth');
+        const weekBtn = document.getElementById('viewWeek');
+
+        if (view === 'month') {
+            monthBtn.classList.add('bg-white', 'text-blue-600', 'shadow-sm');
+            monthBtn.classList.remove('text-slate-600');
+            weekBtn.classList.remove('bg-white', 'text-blue-600', 'shadow-sm');
+            weekBtn.classList.add('text-slate-600');
+        } else {
+            weekBtn.classList.add('bg-white', 'text-blue-600', 'shadow-sm');
+            weekBtn.classList.remove('text-slate-600');
+            monthBtn.classList.remove('bg-white', 'text-blue-600', 'shadow-sm');
+            monthBtn.classList.add('text-slate-600');
+        }
+
+        render();
+    }
+
+    function changeDate(delta) {
+        if (currentView === 'month') {
+            currentDate.setMonth(currentDate.getMonth() + delta);
+        } else {
+            currentDate.setDate(currentDate.getDate() + (delta * 7));
+        }
         render();
     }
 
@@ -59,16 +96,37 @@
     }
 
     function getFirstDayOfMonth(year, month) {
-        // 0 = Sunday, 1 = Monday. We want Monday as 0 index for our grid if we start with Mon.
-        // JS Date: 0=Sun, 1=Mon...6=Sat.
-        // We want 0=Mon...6=Sun.
         let day = new Date(year, month, 1).getDay();
         return day === 0 ? 6 : day - 1;
+    }
+
+    function getWeekStart(date) {
+        const d = new Date(date);
+        const day = d.getDay();
+        const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+        return new Date(d.setDate(diff));
+    }
+
+    function formatTime(minutes) {
+        if (!minutes) return '';
+        const hours = Math.floor(minutes / 60);
+        const mins = minutes % 60;
+        if (hours > 0 && mins > 0) return `${hours}h ${mins}min`;
+        if (hours > 0) return `${hours}h`;
+        return `${mins}min`;
     }
 
     function render(installations) {
         if (installations) currentData = installations;
 
+        if (currentView === 'week') {
+            renderWeekView();
+        } else {
+            renderMonthView();
+        }
+    }
+
+    function renderMonthView() {
         const grid = document.getElementById('calendarGrid');
         const title = document.getElementById('calendarTitle');
         if (!grid || !title) return;
@@ -94,7 +152,7 @@
 
         // Render Days
         const monthBody = document.createElement('div');
-        monthBody.className = 'grid grid-cols-7 auto-rows-fr h-full'; // Fill height
+        monthBody.className = 'grid grid-cols-7 auto-rows-fr h-full';
 
         // Calculate Grid
         const year = currentDate.getFullYear();
@@ -116,16 +174,108 @@
             monthBody.appendChild(createDayCell(i, false, isToday, year, month));
         }
 
-        // Next Month filler (to fill 6 rows approx or just til end of week)
+        // Next Month filler
         const totalCells = firstDay + daysInMonth;
-        const remaining = 42 - totalCells; // 6 rows * 7 cols = 42
+        const remaining = 42 - totalCells;
         for (let i = 1; i <= remaining; i++) {
             monthBody.appendChild(createDayCell(i, true));
         }
 
         grid.appendChild(monthBody);
 
-        // Re-init icons
+        if (window.lucide) window.lucide.createIcons();
+    }
+
+    function renderWeekView() {
+        const grid = document.getElementById('calendarGrid');
+        const title = document.getElementById('calendarTitle');
+        if (!grid || !title) return;
+
+        const weekStart = getWeekStart(currentDate);
+        const weekEnd = new Date(weekStart);
+        weekEnd.setDate(weekEnd.getDate() + 6);
+
+        // Update Title
+        const monthNames = ["Jan", "Feb", "Mar", "Apr", "Maj", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dec"];
+        title.textContent = `Vecka ${getWeekNumber(weekStart)} - ${weekStart.getDate()} ${monthNames[weekStart.getMonth()]} - ${weekEnd.getDate()} ${monthNames[weekEnd.getMonth()]} ${weekEnd.getFullYear()}`;
+
+        // Clear Grid
+        grid.innerHTML = '';
+
+        // Render Day Headers with dates
+        const days = ['Måndag', 'Tisdag', 'Onsdag', 'Torsdag', 'Fredag', 'Lördag', 'Söndag'];
+        const headerRow = document.createElement('div');
+        headerRow.className = 'grid grid-cols-7 border-b border-slate-200 bg-slate-50';
+
+        const today = new Date();
+
+        for (let i = 0; i < 7; i++) {
+            const dayDate = new Date(weekStart);
+            dayDate.setDate(dayDate.getDate() + i);
+            const isToday = dayDate.toDateString() === today.toDateString();
+
+            const el = document.createElement('div');
+            el.className = `py-4 text-center ${isToday ? 'bg-blue-50' : ''}`;
+            el.innerHTML = `
+                <div class="text-xs font-semibold text-slate-500 uppercase tracking-wide">${days[i]}</div>
+                <div class="text-lg font-bold ${isToday ? 'text-blue-600' : 'text-slate-800'} mt-1">${dayDate.getDate()}</div>
+            `;
+            headerRow.appendChild(el);
+        }
+        grid.appendChild(headerRow);
+
+        // Render Week Body
+        const weekBody = document.createElement('div');
+        weekBody.className = 'grid grid-cols-7 flex-1';
+
+        for (let i = 0; i < 7; i++) {
+            const dayDate = new Date(weekStart);
+            dayDate.setDate(dayDate.getDate() + i);
+
+            const dateStr = formatDateString(dayDate);
+            const events = currentData.filter(inst => inst.date === dateStr);
+            const isToday = dayDate.toDateString() === today.toDateString();
+
+            const cell = document.createElement('div');
+            cell.className = `min-h-[400px] p-2 border-r border-b border-slate-100 ${isToday ? 'bg-blue-50/30' : 'bg-white'}`;
+            cell.dataset.date = dateStr;
+
+            // Enable drop zone
+            cell.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                cell.classList.add('bg-blue-100');
+            });
+
+            cell.addEventListener('dragleave', (e) => {
+                cell.classList.remove('bg-blue-100');
+            });
+
+            cell.addEventListener('drop', async (e) => {
+                e.preventDefault();
+                cell.classList.remove('bg-blue-100');
+                const instId = e.dataTransfer.getData('text/plain');
+                const newDate = cell.dataset.date;
+
+                // Update installation date
+                const inst = currentData.find(i => i.id === instId);
+                if (inst && inst.date !== newDate) {
+                    inst.date = newDate;
+                    await window.WP.db.saveInstallation(inst);
+                    render();
+                }
+            });
+
+            // Render events
+            events.forEach(ev => {
+                const evEl = createEventElement(ev);
+                cell.appendChild(evEl);
+            });
+
+            weekBody.appendChild(cell);
+        }
+
+        grid.appendChild(weekBody);
+
         if (window.lucide) window.lucide.createIcons();
     }
 
@@ -139,55 +289,113 @@
         dateEl.textContent = dayNum;
         cell.appendChild(dateEl);
 
-        // Content
+        // Drop zone setup
         if (!isOtherMonth && year && month !== undefined) {
             const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
+            cell.dataset.date = dateStr;
 
-            // Find events
+            cell.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                cell.classList.add('bg-blue-100');
+            });
+
+            cell.addEventListener('dragleave', (e) => {
+                cell.classList.remove('bg-blue-100');
+            });
+
+            cell.addEventListener('drop', async (e) => {
+                e.preventDefault();
+                cell.classList.remove('bg-blue-100');
+                const instId = e.dataTransfer.getData('text/plain');
+                const newDate = cell.dataset.date;
+
+                const inst = currentData.find(i => i.id === instId);
+                if (inst && inst.date !== newDate) {
+                    inst.date = newDate;
+                    await window.WP.db.saveInstallation(inst);
+                    render();
+                }
+            });
+
+            // Find events for this day
             const events = currentData.filter(i => i.date === dateStr);
 
             const eventsContainer = document.createElement('div');
             eventsContainer.className = 'mt-8 flex flex-col gap-1.5';
 
             events.forEach(ev => {
-                const evEl = document.createElement('div');
-                // Style based on status
-                let colorClass = 'bg-slate-100 text-slate-700 border-slate-200';
-                if (ev.status === 'completed') colorClass = 'bg-green-50 text-green-700 border-green-200';
-                if (ev.status === 'planned') colorClass = 'bg-blue-50 text-blue-700 border-blue-200';
-
-                evEl.className = `text-[10px] p-1.5 rounded border ${colorClass} cursor-pointer truncate hover:opacity-80 transition-opacity`;
-
-                const techName = ev.technician ? ev.technician.split(' ')[0] : '?';
-
-                evEl.innerHTML = `
-                    <div class="font-semibold truncate">${ev.customer}</div>
-                    ${ev.technician ? `<div class="flex items-center gap-1 mt-0.5 opacity-75"><i data-lucide="user" class="w-3 h-3"></i> ${techName}</div>` : ''}
-                 `;
-
-                // Add click handler to open assignment panel (or view details)
-                evEl.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    // Trigger same action as clicking list item
-                    if (window.WP && window.WP.ui && window.WP.ui.renderList) {
-                        // We need a way to trigger the map flyTo or open assign panel. 
-                        // For now let's just log or maybe trigger the map flyTo if map is hidden?
-                        // Actually user might want to edit.
-                        // Let's reuse the handleAssignTechnician if pending, or just show details.
-                        // Ideally we switch to map view and zoom? Or just open edit modal?
-                        // Let's assume generic "card click" behavior for now.
-                        console.log("Clicked event", ev);
-                        // TODO: Maybe implement a 'quick view' modal or switch to map. 
-                        // For now, let's keep it simple.
-                    }
-                });
-
+                const evEl = createEventElement(ev, true);
                 eventsContainer.appendChild(evEl);
             });
             cell.appendChild(eventsContainer);
         }
 
         return cell;
+    }
+
+    function createEventElement(ev, compact = false) {
+        const evEl = document.createElement('div');
+        const isCompleted = ev.status === 'completed';
+
+        evEl.draggable = !isCompleted;
+        evEl.dataset.id = ev.id;
+
+        // Style based on status
+        let colorClass = 'bg-slate-100 text-slate-700 border-slate-200';
+        if (ev.status === 'completed') colorClass = 'bg-green-50 text-green-700 border-green-200';
+        if (ev.status === 'planned') colorClass = 'bg-blue-50 text-blue-700 border-blue-200';
+
+        const cursorClass = isCompleted ? 'cursor-default' : 'cursor-grab active:cursor-grabbing';
+        evEl.className = `text-[10px] p-1.5 rounded border ${colorClass} ${cursorClass} truncate hover:opacity-80 transition-opacity`;
+
+        const techName = ev.technician ? ev.technician.split(' ')[0] : '?';
+
+        if (compact) {
+            evEl.innerHTML = `
+                <div class="font-semibold truncate">${ev.customer}</div>
+                ${ev.technician ? `<div class="flex items-center gap-1 mt-0.5 opacity-75"><i data-lucide="user" class="w-3 h-3"></i> ${techName}</div>` : ''}
+            `;
+        } else {
+            evEl.innerHTML = `
+                <div class="font-semibold truncate">${ev.customer}</div>
+                <div class="flex items-center gap-2 mt-1 opacity-75">
+                    ${ev.technician ? `<span class="flex items-center gap-1"><i data-lucide="user" class="w-3 h-3"></i> ${techName}</span>` : ''}
+                    ${ev.estimatedTime ? `<span class="flex items-center gap-1"><i data-lucide="clock" class="w-3 h-3"></i> ${formatTime(ev.estimatedTime)}</span>` : ''}
+                </div>
+            `;
+        }
+
+        // Drag events
+        evEl.addEventListener('dragstart', (e) => {
+            e.dataTransfer.setData('text/plain', ev.id);
+            evEl.classList.add('opacity-50');
+        });
+
+        evEl.addEventListener('dragend', (e) => {
+            evEl.classList.remove('opacity-50');
+        });
+
+        evEl.addEventListener('click', (e) => {
+            e.stopPropagation();
+            console.log("Clicked event", ev);
+        });
+
+        return evEl;
+    }
+
+    function formatDateString(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+
+    function getWeekNumber(date) {
+        const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+        const dayNum = d.getUTCDay() || 7;
+        d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+        const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+        return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
     }
 
     window.WP = window.WP || {};

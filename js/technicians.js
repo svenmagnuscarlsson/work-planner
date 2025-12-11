@@ -164,10 +164,14 @@
 
             card.querySelector('.edit-tech').addEventListener('click', () => openModal(t));
             card.querySelector('.delete-tech').addEventListener('click', async () => {
-                if (confirm(`Är du säker på att du vill ta bort ${t.name}?`)) {
-                    await window.WP.db.deleteTechnician(t.id);
-                    render();
-                }
+                window.WP.ui.showConfirmModal(
+                    'Bekräfta borttagning',
+                    `Är du säker på att du vill ta bort ${t.name}?`,
+                    async () => {
+                        await window.WP.db.deleteTechnician(t.id);
+                        render();
+                    }
+                );
             });
 
             grid.appendChild(card);

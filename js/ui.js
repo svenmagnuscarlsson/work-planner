@@ -2,9 +2,9 @@
 
     function getStatusColorClass(status) {
         switch (status) {
-            case 'completed': return 'bg-green-100 text-green-700';
-            case 'planned': return 'bg-blue-100 text-blue-700';
-            default: return 'bg-amber-100 text-amber-700';
+            case 'completed': return 'bg-green-100 text-green-800 border-green-200 border';
+            case 'planned': return 'bg-blue-100 text-blue-800 border-blue-200 border';
+            default: return 'bg-amber-100 text-amber-800 border-amber-200 border';
         }
     }
 
@@ -16,7 +16,43 @@
         }
     }
 
-    function renderList(installations, containerId, onCardClick) {
+    function getCategoryColorClass(category) {
+        switch (category) {
+            case 'Villalarm': return 'bg-purple-100 text-purple-700';
+            case 'Företagslarm': return 'bg-indigo-100 text-indigo-700';
+            case 'Kameraövervakning': return 'bg-cyan-100 text-cyan-700';
+            case 'Service': return 'bg-orange-100 text-orange-700';
+            default: return 'bg-slate-100 text-slate-600';
+        }
+    }
+
+    function formatTime(minutes) {
+        if (!minutes) return '';
+        const hours = Math.floor(minutes / 60);
+        const mins = minutes % 60;
+        if (hours > 0 && mins > 0) return `${hours}h ${mins}min`;
+        if (hours > 0) return `${hours}h`;
+        return `${mins}min`;
+    }
+
+    function renderSkeleton(containerId, count = 3) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        container.innerHTML = '';
+        for (let i = 0; i < count; i++) {
+            container.innerHTML += `
+                <div class="bg-white p-3 rounded-lg border border-slate-200 shadow-sm mb-3">
+                    <div class="h-4 bg-slate-200 rounded w-3/4 mb-2 skeleton"></div>
+                    <div class="h-3 bg-slate-200 rounded w-1/2 mb-3 skeleton"></div>
+                    <div class="flex gap-2">
+                        <div class="h-5 w-16 bg-slate-200 rounded skeleton"></div>
+                        <div class="h-5 w-12 bg-slate-200 rounded skeleton"></div>
+                    </div>
+                </div>`;
+        }
+    }
+
+    function renderList(installations, containerId, onCardClick, onDeleteCallback) {
         const container = document.getElementById(containerId);
         if (!container) return;
 
@@ -33,8 +69,10 @@
             card.dataset.id = inst.id;
 
             const statusColor = getStatusColorClass(inst.status);
-            const statusLabel = getStatusLabel(inst.status); // Use translation helper
+            const statusLabel = getStatusLabel(inst.status);
+            const categoryColor = getCategoryColorClass(inst.category);
             const canEdit = inst.status === 'pending' || inst.status === 'planned';
+            const canDelete = inst.status !== 'completed';
 
             card.innerHTML = `
                 <div class="flex justify-between items-start mb-1">
@@ -43,12 +81,20 @@
                          ${canEdit ? `<button class="edit-btn p-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors" title="Redigera">
                             <i data-lucide="pencil" class="w-3 h-3"></i>
                         </button>` : ''}
+                        ${canDelete ? `<button class="delete-btn p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors" title="Ta bort">
+                            <i data-lucide="trash-2" class="w-3 h-3"></i>
+                        </button>` : ''}
                         <span class="px-2 py-0.5 rounded-full text-[10px] uppercase font-bold tracking-wider ${statusColor}">
                             ${statusLabel}
                         </span>
                     </div>
                 </div>
                 <p class="text-xs text-slate-500 mb-2 truncate"><i data-lucide="map-pin" class="w-3 h-3 inline mr-1"></i>${inst.address}</p>
+                
+                <div class="flex items-center gap-2 mb-2">
+                    ${inst.category ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-medium ${categoryColor}">${inst.category}</span>` : ''}
+                    ${inst.estimatedTime ? `<span class="text-[10px] text-slate-500 flex items-center gap-1"><i data-lucide="clock" class="w-3 h-3"></i>${formatTime(inst.estimatedTime)}</span>` : ''}
+                </div>
                 
                 <div class="flex items-center justify-between pt-2 border-t border-slate-100 mt-2">
                     <div class="flex items-center gap-2">
@@ -70,11 +116,15 @@
                 } else if (e.target.closest('.edit-btn')) {
                     e.preventDefault();
                     e.stopPropagation();
-                    handleAssignTechnician(inst, onCardClick); // Reuse logic but will be updated to handle edit
+                    handleAssignTechnician(inst, onCardClick);
+                } else if (e.target.closest('.delete-btn')) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleDeleteInstallation(inst, onDeleteCallback);
                 } else if (e.target.closest('.complete-btn')) {
                     e.preventDefault();
                     e.stopPropagation();
-                    handleCompleteInstallation(inst, onCardClick);
+                    handleCompleteInstallation(inst, onDeleteCallback);
                 } else {
                     onCardClick(inst);
                 }
@@ -102,13 +152,94 @@
         }
     }
 
+    function showConfirmModal(title, message, onConfirm, options = {}) {
+        const modal = document.getElementById('confirmationModal');
+        const titleEl = document.getElementById('confirmTitle');
+        const messageEl = document.getElementById('confirmMessage');
+        const cancelBtn = document.getElementById('confirmCancelBtn');
+        const actionBtn = document.getElementById('confirmActionBtn');
+        const backdrop = document.getElementById('confirmBackdrop');
+        const iconContainer = document.getElementById('confirmIconContainer');
+        const icon = document.getElementById('confirmIcon');
+
+        if (!modal) return;
+
+        // Default options
+        const config = {
+            confirmText: 'Ta bort',
+            confirmColor: 'bg-red-600 hover:bg-red-700 shadow-red-600/20',
+            icon: 'alert-triangle',
+            iconColor: 'bg-red-100 text-red-600',
+            ...options
+        };
+
+        titleEl.textContent = title;
+        messageEl.textContent = message;
+
+        // Apply Styles
+        actionBtn.textContent = config.confirmText;
+        actionBtn.className = `px-4 py-2 text-white rounded-lg font-medium transition-colors shadow-lg ${config.confirmColor}`;
+
+        iconContainer.className = `w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4 ${config.iconColor}`;
+        icon.setAttribute('data-lucide', config.icon);
+
+        if (window.lucide) window.lucide.createIcons();
+
+        function close() {
+            modal.classList.add('hidden');
+            // Clone to remove listeners
+            const newActionBtn = actionBtn.cloneNode(true);
+            actionBtn.parentNode.replaceChild(newActionBtn, actionBtn);
+
+            const newCancelBtn = cancelBtn.cloneNode(true);
+            cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+
+            const newBackdrop = backdrop.cloneNode(true);
+            backdrop.parentNode.replaceChild(newBackdrop, backdrop);
+        }
+
+        // Logic
+        cancelBtn.onclick = close;
+        backdrop.onclick = close;
+
+        actionBtn.onclick = async () => {
+            const originalText = actionBtn.textContent;
+            actionBtn.disabled = true;
+            actionBtn.textContent = 'Bearbetar...';
+
+            await onConfirm();
+
+            close();
+        };
+
+        // Ensure buttons have close handlers after potential cloning
+        document.getElementById('confirmCancelBtn').onclick = close;
+        document.getElementById('confirmBackdrop').onclick = close;
+
+        // Important: Attach event to the *current* button (which might be the cloned one if we didn't use the fresh selector inside logic)
+        // Similar to previous implementation, we should be careful. 
+        // Using IDs again is safest.
+
+        const freshActionBtn = document.getElementById('confirmActionBtn');
+        freshActionBtn.onclick = async () => {
+            freshActionBtn.disabled = true;
+            freshActionBtn.textContent = 'Bearbetar...';
+            await onConfirm();
+            close();
+        };
+
+        modal.classList.remove('hidden');
+    }
+
     async function handleAssignTechnician(inst, reloadCallback) {
         const panel = document.getElementById('assignmentPanel');
         const subtitleEl = document.getElementById('assignPanelSubtitle');
         const nameInput = document.getElementById('assignCustomerName');
         const dateInput = document.getElementById('assignDate');
         const titleEl = document.getElementById('assignPanelTitle');
-        const techListContainer = document.querySelector('#assignmentPanel .space-y-3');
+        const categorySelect = document.getElementById('assignCategory');
+        const timeInput = document.getElementById('assignEstimatedTime');
+        const techListContainer = document.getElementById('technicianRadioList');
 
         // Clear existing radios
         if (techListContainer) techListContainer.innerHTML = '<p class="text-sm text-slate-500">Laddar tekniker...</p>';
@@ -120,6 +251,8 @@
 
             if (nameInput) nameInput.value = inst.customer || '';
             if (dateInput) dateInput.value = inst.date || '';
+            if (categorySelect) categorySelect.value = inst.category || 'Villalarm';
+            if (timeInput) timeInput.value = (inst.estimatedTime / 60) || 2; // Convert minutes to hours for display
 
             // Load technicians dynamically
             if (techListContainer && window.WP.technicians) {
@@ -149,23 +282,61 @@
         }
     }
 
-    async function handleCompleteInstallation(inst, reloadCallback) {
-        if (confirm(`Är du säker på att du vill markera "${inst.customer}" som klar?`)) {
-            inst.status = 'completed';
-            await window.WP.db.saveInstallation(inst);
-
-            // Reload UI
-            if (reloadCallback) {
-                const installations = await window.WP.db.getInstallations();
-                reloadCallback(installations);
+    async function handleDeleteInstallation(inst, reloadCallback) {
+        showConfirmModal(
+            'Bekräfta borttagning',
+            `Är du säker på att du vill ta bort "${inst.customer}"?`,
+            async () => {
+                await window.WP.db.deleteInstallation(inst.id);
+                if (reloadCallback) reloadCallback();
+            },
+            {
+                confirmText: 'Ta bort',
+                confirmColor: 'bg-red-600 hover:bg-red-700 shadow-red-600/20',
+                icon: 'alert-triangle',
+                iconColor: 'bg-red-100 text-red-600'
             }
-        }
+        );
+    }
+
+    async function handleCompleteInstallation(inst, reloadCallback) {
+        showConfirmModal(
+            'Markera som klar',
+            `Är du säker på att du vill markera "${inst.customer}" som klar?`,
+            async () => {
+                // Find card and animate
+                const card = document.querySelector(`div[data-id="${inst.id}"]`);
+                if (card) {
+                    card.classList.add('animate-success-pulse', 'border-green-400', 'bg-green-50');
+                }
+
+                await new Promise(r => setTimeout(r, 600)); // Wait for animation
+
+                inst.status = 'completed';
+                await window.WP.db.saveInstallation(inst);
+                if (reloadCallback) {
+                    const installations = await window.WP.db.getInstallations();
+                    reloadCallback(installations);
+                }
+            },
+            {
+                confirmText: 'Markera klar',
+                confirmColor: 'bg-green-600 hover:bg-green-700 shadow-green-600/20',
+                icon: 'check-circle',
+                iconColor: 'bg-green-100 text-green-600'
+            }
+        );
     }
 
     window.WP.ui = {
         renderList,
+        renderSkeleton,
         updateStats,
         closeAssignmentPanel,
-        handleCompleteInstallation
+        handleCompleteInstallation,
+        handleDeleteInstallation,
+        formatTime,
+        getCategoryColorClass,
+        showConfirmModal
     };
 })();

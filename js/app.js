@@ -1,5 +1,7 @@
 (function () {
     let allInstallations = []; // Cache
+    let currentFilter = 'all';
+    let searchQuery = '';
 
     async function init() {
         console.log("Initializing App...");
@@ -18,7 +20,6 @@
         map.initMap('map');
 
         // 2. Init DB & Data
-        await db.seedDataIfEmpty();
         allInstallations = await db.getInstallations();
 
         // 3. Render UI
@@ -27,11 +28,34 @@
         // 4. Listeners
         setupFilters();
         setupMobilenav();
+        setupSearch();
 
         // 5. Lucide icons
         if (window.lucide) {
             window.lucide.createIcons();
         }
+    }
+
+    function getFilteredData() {
+        let data = allInstallations;
+
+        // Apply status filter
+        if (currentFilter !== 'all') {
+            data = data.filter(i => i.status === currentFilter);
+        }
+
+        // Apply search filter
+        if (searchQuery.trim()) {
+            const query = searchQuery.toLowerCase().trim();
+            data = data.filter(i =>
+                i.customer.toLowerCase().includes(query) ||
+                i.address.toLowerCase().includes(query) ||
+                (i.technician && i.technician.toLowerCase().includes(query)) ||
+                (i.category && i.category.toLowerCase().includes(query))
+            );
+        }
+
+        return data;
     }
 
     function refreshUI(data) {
@@ -40,11 +64,30 @@
 
         ui.renderList(data, 'installationList', (inst) => {
             map.flyTo(inst.lat, inst.lng);
+        }, async () => {
+            // Delete callback - reload all data
+            allInstallations = await window.WP.db.getInstallations();
+            refreshUI(getFilteredData());
         });
         map.renderMarkers(data, (inst) => {
             console.log("Clicked marker:", inst.customer);
         });
         ui.updateStats(data.length);
+    }
+
+    function setupSearch() {
+        const searchInput = document.getElementById('searchInput');
+        if (!searchInput) return;
+
+        let debounceTimer;
+
+        searchInput.addEventListener('input', (e) => {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                searchQuery = e.target.value;
+                refreshUI(getFilteredData());
+            }, 300); // 300ms debounce
+        });
     }
 
     function setupFilters() {
@@ -60,12 +103,8 @@
                 btn.classList.add('bg-slate-100', 'ring-2', 'ring-blue-500', 'active-filter');
 
                 // Logic
-                const filter = btn.dataset.filter;
-                const filtered = filter === 'all'
-                    ? allInstallations
-                    : allInstallations.filter(i => i.status === filter);
-
-                refreshUI(filtered);
+                currentFilter = btn.dataset.filter;
+                refreshUI(getFilteredData());
             });
         });
     }
@@ -79,7 +118,6 @@
 
         function open() {
             modal.classList.remove('hidden');
-            // Re-init hidden icons if needed, though they are usually fine
         }
 
         function close() {
@@ -133,14 +171,16 @@
                     lng: lng,
                     status: 'pending',
                     technician: null,
-                    date: new Date().toISOString().split('T')[0]
+                    date: new Date().toISOString().split('T')[0],
+                    category: formData.get('category') || 'Villalarm',
+                    estimatedTime: (parseInt(formData.get('estimatedTime')) * 60) || 120 // Convert hours to minutes
                 };
 
                 await window.WP.db.saveInstallation(newInst);
 
                 // Refresh data
                 allInstallations = await window.WP.db.getInstallations();
-                refreshUI(allInstallations);
+                refreshUI(getFilteredData());
 
                 // Fly to new location if geocoded successfully
                 if (coords) {
@@ -161,10 +201,17 @@
         const openListBtn = document.getElementById('openListPanel');
         const closeListBtn = document.getElementById('closeListPanel');
 
-        if (toggleSidebar) {
-            toggleSidebar.addEventListener('click', () => {
+        if (toggleSidebar && sidebar) {
+            toggleSidebar.addEventListener('click', (e) => {
+                e.stopPropagation();
                 sidebar.classList.toggle('-translate-x-full');
-                sidebar.classList.toggle('absolute');
+            });
+
+            // Close sidebar when clicking outside on mobile
+            document.addEventListener('click', (e) => {
+                if (window.innerWidth < 1024 && !sidebar.contains(e.target) && !toggleSidebar.contains(e.target)) {
+                    sidebar.classList.add('-translate-x-full');
+                }
             });
         }
 
@@ -182,39 +229,39 @@
     }
 
     function setupAssignmentPanel() {
-        const cancelBtn = document.getElementById('cancelAssignBtn');
-        const closeBtn = document.getElementById('closeAssignPanelBtn');
-        const saveBtn = document.getElementById('confirmAssignBtn');
         const panel = document.getElementById('assignmentPanel');
+        const closeBtn = document.getElementById('closeAssignPanelBtn');
+        const cancelBtn = document.getElementById('cancelAssignBtn');
+        const confirmBtn = document.getElementById('confirmAssignBtn');
 
-        if (cancelBtn) cancelBtn.addEventListener('click', () => window.WP.ui.closeAssignmentPanel());
-        if (closeBtn) closeBtn.addEventListener('click', () => window.WP.ui.closeAssignmentPanel());
+        // Inputs
+        const nameInput = document.getElementById('assignCustomerName');
+        const dateInput = document.getElementById('assignDate');
+        const categorySelect = document.getElementById('assignCategory');
+        const timeInput = document.getElementById('assignEstimatedTime');
 
-        if (saveBtn) {
-            saveBtn.addEventListener('click', async () => {
+        if (closeBtn) closeBtn.addEventListener('click', window.WP.ui.closeAssignmentPanel);
+        if (cancelBtn) cancelBtn.addEventListener('click', window.WP.ui.closeAssignmentPanel);
+
+        if (confirmBtn) {
+            confirmBtn.addEventListener('click', async () => {
                 const currentId = panel.dataset.currentId;
                 if (!currentId) return;
 
                 const selectedTech = document.querySelector('input[name="technician"]:checked');
-                const dateVal = document.getElementById('assignDate').value;
-
-                const customerVal = document.getElementById('assignCustomerName').value;
-
-                if (!customerVal) {
-                    alert("Kundnamn får inte vara tomt.");
-                    return;
-                }
-
-                // Fetch, Update, Save
+                const dateVal = dateInput.value;
+                const customerVal = nameInput.value;
+                const categoryVal = categorySelect.value;
+                const timeVal = timeInput.value;
                 const db = window.WP.db;
-                const inst = await db.getInstallation(currentId); // Need to expose get record logic or fetch from cache
-                // Note: getInstallation wasn't explicitly exposed in global, let's fix that or filter from cache
 
                 // Fallback to finding in cache
                 const cachedInst = allInstallations.find(i => i.id === currentId);
 
                 if (cachedInst) {
                     cachedInst.customer = customerVal;
+                    cachedInst.category = categoryVal || 'Villalarm';
+                    cachedInst.estimatedTime = (parseInt(timeVal) * 60) || 120; // Convert hours to minutes
 
                     if (dateVal) cachedInst.date = dateVal;
                     if (selectedTech) cachedInst.technician = selectedTech.value;
@@ -228,7 +275,7 @@
 
                     // Refresh UI
                     window.WP.ui.closeAssignmentPanel();
-                    refreshUI(allInstallations); // Updates list and map
+                    refreshUI(getFilteredData());
                 }
             });
         }
@@ -236,21 +283,27 @@
 
     // Navigation Logic
     function setupNavigation() {
+        const navOverview = document.getElementById('nav-overview');
         const navMap = document.getElementById('nav-map');
         const navCal = document.getElementById('nav-calendar');
         const navTech = document.getElementById('nav-tech');
+        const navStats = document.getElementById('nav-stats');
         const mapContainer = document.getElementById('map').parentElement;
         const listPanel = document.getElementById('listPanel');
         const calendarView = document.getElementById('calendarView');
         const technicianView = document.getElementById('technicianView');
+        const statisticsView = document.getElementById('statisticsView');
+
+        const allNavItems = [navOverview, navMap, navCal, navTech, navStats];
 
         function hideAll() {
             mapContainer.classList.add('hidden');
             listPanel.classList.add('hidden');
             calendarView.classList.add('hidden');
             if (technicianView) technicianView.classList.add('hidden');
+            if (statisticsView) statisticsView.classList.add('hidden');
 
-            [navMap, navCal, navTech].forEach(el => {
+            allNavItems.forEach(el => {
                 if (el) {
                     el.classList.remove('bg-blue-50', 'text-blue-700');
                     el.classList.add('text-slate-600', 'hover:bg-slate-50', 'hover:text-slate-900');
@@ -263,6 +316,14 @@
                 el.classList.add('bg-blue-50', 'text-blue-700');
                 el.classList.remove('text-slate-600', 'hover:bg-slate-50', 'hover:text-slate-900');
             }
+        }
+
+        function switchToOverview() {
+            hideAll();
+            mapContainer.classList.remove('hidden');
+            listPanel.classList.remove('hidden');
+            setActive(navOverview);
+            window.WP.map.initMap('map').invalidateSize();
         }
 
         function switchToMap() {
@@ -293,16 +354,28 @@
             }
         }
 
+        function switchToStatistics() {
+            hideAll();
+            if (statisticsView) statisticsView.classList.remove('hidden');
+            setActive(navStats);
+            if (window.WP.statistics) {
+                window.WP.statistics.init('statisticsView');
+                window.WP.statistics.render(allInstallations);
+            }
+        }
+
+        if (navOverview) navOverview.addEventListener('click', (e) => { e.preventDefault(); switchToOverview(); });
         if (navMap) navMap.addEventListener('click', (e) => { e.preventDefault(); switchToMap(); });
         if (navCal) navCal.addEventListener('click', (e) => { e.preventDefault(); switchToCalendar(); });
         if (navTech) navTech.addEventListener('click', (e) => { e.preventDefault(); switchToTechnicians(); });
+        if (navStats) navStats.addEventListener('click', (e) => { e.preventDefault(); switchToStatistics(); });
     }
 
     // Start
     document.addEventListener('DOMContentLoaded', () => {
         init();
-        setupModal(); // Init modal logic
-        setupAssignmentPanel(); // Init assignment logic
-        setupNavigation(); // Init nav logic
+        setupModal();
+        setupAssignmentPanel();
+        setupNavigation();
     });
 })();
