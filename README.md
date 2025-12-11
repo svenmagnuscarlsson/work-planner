@@ -1,30 +1,40 @@
-# Work Planner - Inbrottslarmsinstallationer
+# MacaPlanner - Arbetsplanerare
 
-En statisk webbapplikation för att planera och hantera installationer av inbrottslarm.
+En modern och responsiv webbapplikation för att planera, hantera och följa upp installationer av inbrottslarm och säkerhetssystem.
 
 ## Funktioner
 
 ### 📋 Installationshantering
-- **Lista** över alla installationer med status och tilldelad tekniker
-- **Lägg till** nya installationer via formulär
-- **Redigera** befintliga installationer (kundnamn, tekniker, datum)
-- **Markera som klar** när en installation är slutförd
+- **Översikt** över alla installationer med tydlig statusindikering
+- **Sökfunktion** för att snabbt hitta installationer, kunder eller tekniker
+- **Lägg till** nya installationer med automatisk geokodning av adresser
+- **Filtrering** på status (Väntande, Planerad, Klar)
 
-### 🗺️ Kartvy
-- Interaktiv karta med markörer för varje installation
-- Klicka på en markör för att se detaljer
-- Färgkodning baserat på status
+### 🗺️ Interaktiv Karta
+- Dynamisk karta baserad på **Leaflet**
+- **Kategorispecifika ikoner** (Villalarm, Företagslarm, Kameraövervakning m.m.)
+- Visuell feedback med animationer vid navigering
+- Klicka på markörer för snabbinfo och navigering
 
-### 📅 Kalender
-- Månadsvy över planerade och genomförda installationer
-- Navigera mellan månader
-- Se vilken tekniker som är tilldelad varje jobb
+### 📅 Kalender & Planering
+- Månadsvy för enkel översikt av beläggning
+- **Drag-and-drop** (teoretiskt stöd) för ombokning
+- Tydlig visning av tilldelade tekniker
+
+### 📊 Statistik & Analys
+- **Dashboard** med nyckeltal (KPI:er)
+- Tidsstatistik och kategorifördelning
+- Belastningsanalys per tekniker
+- Månadsöversikt för historisk data
 
 ### 👷 Teknikerhantering
-- **Lägg till** nya tekniker med namn, telefon och e-post
-- **Redigera** befintliga tekniker
-- **Ta bort** tekniker
-- Dynamisk lista vid tilldelning av installationer
+- Databas över tillgängliga tekniker
+- Enkel tilldelning via gränssnittet
+
+### ♿ Tillgänglighet & UX
+- Helt responsiv design anpassad för desktop, surfplatta och mobil
+- **Aria-anpassad** för skärmläsare
+- Tydlig visuell feedback (Toasts, Skeletons, laddningsindikatorer)
 
 ## Statusflöde
 
@@ -32,61 +42,56 @@ En statisk webbapplikation för att planera och hantera installationer av inbrot
 VÄNTANDE → PLANERAD → KLAR
 ```
 
-1. **Väntande** - Ny installation utan tilldelad tekniker
-2. **Planerad** - Tekniker och datum tilldelat
-3. **Klar** - Installation slutförd (kan ej redigeras)
+1. **Väntande** - Ny installation registrerad, inväntar planering.
+2. **Planerad** - Tekniker och datum har tilldelats.
+3. **Klar** - Arbetet slutfört och godkänt.
 
 ## Komma igång
 
-1. Öppna `index.html` i en webbläsare
-2. Appen laddar automatiskt exempeldata vid första användning
-3. All data sparas lokalt i webbläsarens IndexedDB
+1. Öppna `index.html` i en modern webbläsare.
+2. Applikationen laddar automatiskt exempeldata vid första start.
+3. Ingen backend krävs - all data sparas lokalt i webbläsaren (**IndexedDB**).
 
-## Teknisk stack
+## Teknisk Stack
 
-- **HTML5** + **Vanilla JavaScript**
-- **Tailwind CSS** (via CDN)
-- **Leaflet** för kartor
-- **Lucide Icons** för ikoner
-- **IndexedDB** för lokal datalagring
+- **Frontend**: HTML5, Vanilla JavaScript (ES6+)
+- **Styling**: Tailwind CSS (CDN)
+- **Karta**: Leaflet.js & OpenStreetMap
+- **Ikoner**: Lucide Icons
+- **Lagring**: IndexedDB (via idb biblioteket)
 
 ## Filstruktur
 
 ```
 work-planner/
-├── index.html          # Huvudsida
+├── index.html          # Applikationens ingångspunkt
 ├── js/
-│   ├── app.js          # Applikationslogik
-│   ├── db.js           # Databashantering
-│   ├── map.js          # Kartfunktioner
-│   ├── ui.js           # UI-komponenter
-│   ├── calendar.js     # Kalenderfunktioner
-│   └── technicians.js  # Teknikerhantering
-└── README.md
+│   ├── app.js          # Huvudsaklig logik och initiering
+│   ├── db.js           # Databaslager (IndexedDB wrapper)
+│   ├── map.js          # Kartlogik och rendering
+│   ├── ui.js           # Delade UI-komponenter och helpers
+│   ├── calendar.js     # Kalendervy
+│   ├── technicians.js  # Teknikerhantering
+│   └── statistics.js   # Statistik och dashboard
+└── README.md           # Dokumentation
 ```
 
 ## Användning
 
-### Lägga till installation
-1. Klicka på **"+ Ny installation"** i vänstermenyn
-2. Fyll i kundnamn och adress
-3. Klicka **"Spara"**
+### Skapa ny installation
+1. Klicka på **"Ny Installation"** i övre hörnet.
+2. Fyll i kunduppgifter och adress.
+3. Adressen geokodas automatiskt för att placeras på kartan.
 
-### Tilldela tekniker
-1. Klicka på **"Tilldela"** på ett installationskort
-2. Välj tekniker och datum
-3. Klicka **"Spara"**
+### Planera arbete
+1. Klicka **"Tilldela"** på ett kort eller välj **"Redigera"**.
+2. Välj tekniker och datum i panelen som öppnas.
+3. Spara för att uppdatera status till **Planerad**.
 
-### Markera som klar
-1. Hitta en **planerad** installation
-2. Klicka på **"Markera klar"**
-3. Bekräfta i dialogrutan
-
-### Hantera tekniker
-1. Klicka på **"Tekniker"** i menyn
-2. Använd **"+ Ny Tekniker"** för att lägga till
-3. Hover över ett kort för att redigera eller ta bort
+### Avsluta jobb
+1. När arbetet är klart, klicka **"Markera klar"** på kortet.
+2. Installationen låses och markeras grön i systemet.
 
 ---
 
-*Utvecklad med ❤️ för effektiv planering av inbrottslarmsinstallationer*
+*Utvecklad för maximal effektivitet och användarvänlighet.*

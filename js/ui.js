@@ -187,15 +187,13 @@
 
         function close() {
             modal.classList.add('hidden');
-            // Clone to remove listeners
-            const newActionBtn = actionBtn.cloneNode(true);
-            actionBtn.parentNode.replaceChild(newActionBtn, actionBtn);
+            // Clean up listeners to prevent memory leaks/double actions
+            actionBtn.onclick = null;
+            cancelBtn.onclick = null;
+            backdrop.onclick = null;
 
-            const newCancelBtn = cancelBtn.cloneNode(true);
-            cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
-
-            const newBackdrop = backdrop.cloneNode(true);
-            backdrop.parentNode.replaceChild(newBackdrop, backdrop);
+            // Re-enable button if it was disabled
+            actionBtn.disabled = false;
         }
 
         // Logic
@@ -203,28 +201,23 @@
         backdrop.onclick = close;
 
         actionBtn.onclick = async () => {
+            // Reset state in case it was disabled previously
+            actionBtn.disabled = false;
+
             const originalText = actionBtn.textContent;
             actionBtn.disabled = true;
             actionBtn.textContent = 'Bearbetar...';
 
-            await onConfirm();
+            try {
+                await onConfirm();
+            } catch (e) {
+                console.error("Error in confirm action:", e);
+                // Restore button state on error
+                actionBtn.textContent = originalText;
+                actionBtn.disabled = false;
+                return;
+            }
 
-            close();
-        };
-
-        // Ensure buttons have close handlers after potential cloning
-        document.getElementById('confirmCancelBtn').onclick = close;
-        document.getElementById('confirmBackdrop').onclick = close;
-
-        // Important: Attach event to the *current* button (which might be the cloned one if we didn't use the fresh selector inside logic)
-        // Similar to previous implementation, we should be careful. 
-        // Using IDs again is safest.
-
-        const freshActionBtn = document.getElementById('confirmActionBtn');
-        freshActionBtn.onclick = async () => {
-            freshActionBtn.disabled = true;
-            freshActionBtn.textContent = 'Bearbetar...';
-            await onConfirm();
             close();
         };
 
