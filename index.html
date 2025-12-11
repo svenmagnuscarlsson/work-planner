@@ -264,12 +264,13 @@
         <!-- Top Header (Stats / Search) -->
         <header class="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 shrink-0 z-10">
             <div class="flex items-center gap-4">
-                <button id="toggleSidebar" class="p-2 -ml-2 rounded-md text-slate-500 hover:bg-slate-100 lg:hidden">
+                <button id="toggleSidebar" aria-label="Växla sidomeny"
+                    class="p-2 -ml-2 rounded-md text-slate-500 hover:bg-slate-100 lg:hidden">
                     <i data-lucide="menu" class="w-6 h-6"></i>
                 </button>
                 <div class="relative">
                     <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"></i>
-                    <input type="text" id="searchInput" placeholder="Sök installation..."
+                    <input type="text" id="searchInput" aria-label="Sök installation" placeholder="Sök installation..."
                         class="pl-10 pr-4 py-2 bg-slate-100 border-none rounded-full text-sm focus:ring-2 focus:ring-blue-500 w-64 transition-all">
                 </div>
             </div>
@@ -294,7 +295,8 @@
                         <h2 class="font-bold text-slate-800">Installationer</h2>
                         <p class="text-xs text-slate-500" id="installationCount">Laddar...</p>
                     </div>
-                    <button class="p-1 rounded hover:bg-slate-100 lg:hidden" id="closeListPanel">
+                    <button class="p-1 rounded hover:bg-slate-100 lg:hidden" id="closeListPanel"
+                        aria-label="Stäng lista">
                         <i data-lucide="x" class="w-5 h-5 text-slate-500"></i>
                     </button>
                 </div>
@@ -330,7 +332,8 @@
 
                 <!-- Floating Toggle for List (Mobile/Tablet only usually, but good to have) -->
                 <button id="openListPanel"
-                    class="absolute bottom-6 left-6 z-[999] bg-white p-3 rounded-full shadow-lg lg:hidden">
+                    class="absolute bottom-6 left-6 z-[999] bg-white p-3 rounded-full shadow-lg lg:hidden"
+                    aria-label="Öppna lista">
                     <i data-lucide="list" class="w-6 h-6 text-slate-700"></i>
                 </button>
             </div>
@@ -364,22 +367,23 @@
                 <div class="p-6 border-b border-slate-100 flex justify-between items-center">
                     <h2 class="text-xl font-bold text-slate-900">Ny Installation</h2>
                     <button class="p-2 rounded-full hover:bg-slate-100 text-slate-500 transition-colors"
-                        id="closeModalBtn">
+                        id="closeModalBtn" aria-label="Stäng dialogruta">
                         <i data-lucide="x" class="w-5 h-5"></i>
                     </button>
                 </div>
 
                 <form id="newInstallationForm" class="p-6 space-y-4">
                     <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1">Kundnamn</label>
-                        <input type="text" name="customer" required
+                        <label for="newCustomerName"
+                            class="block text-sm font-medium text-slate-700 mb-1">Kundnamn</label>
+                        <input type="text" id="newCustomerName" name="customer" required
                             class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
                             placeholder="t.ex. Anderssons Kiosk">
                     </div>
 
                     <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1">Adress</label>
-                        <input type="text" name="address" required
+                        <label for="newAddress" class="block text-sm font-medium text-slate-700 mb-1">Adress</label>
+                        <input type="text" id="newAddress" name="address" required
                             class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
                             placeholder="t.ex. Storgatan 1">
                         <p class="text-xs text-slate-500 mt-1">Plats sätts automatiskt till kartans mittpunkt.</p>
@@ -387,8 +391,9 @@
 
                     <div class="grid grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-sm font-medium text-slate-700 mb-1">Kategori</label>
-                            <select name="category" required
+                            <label for="newCategory"
+                                class="block text-sm font-medium text-slate-700 mb-1">Kategori</label>
+                            <select id="newCategory" name="category" required
                                 class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
                                 <option value="Villalarm">Villalarm</option>
                                 <option value="Företagslarm">Företagslarm</option>
@@ -398,9 +403,11 @@
                             </select>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-slate-700 mb-1">Uppskattad tid</label>
+                            <label for="newEstimatedTime"
+                                class="block text-sm font-medium text-slate-700 mb-1">Uppskattad tid</label>
                             <div class="relative">
-                                <input type="number" name="estimatedTime" min="1" step="1" value="2"
+                                <input type="number" id="newEstimatedTime" name="estimatedTime" min="1" step="1"
+                                    value="2"
                                     class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all pr-12">
                                 <span
                                     class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-500">tim</span>
@@ -432,7 +439,8 @@
                 <p class="text-sm text-slate-500 mt-1" id="assignPanelSubtitle">Adress...</p>
             </div>
             <button id="closeAssignPanelBtn"
-                class="p-2 rounded-full hover:bg-slate-200 text-slate-500 transition-colors">
+                class="p-2 rounded-full hover:bg-slate-200 text-slate-500 transition-colors"
+                aria-label="Stäng tilldelningspanel">
                 <i data-lucide="x" class="w-5 h-5"></i>
             </button>
         </div>
@@ -441,14 +449,16 @@
             <!-- Edit Fields -->
             <div class="space-y-4">
                 <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-2">Kundnamn</label>
+                    <label for="assignCustomerName"
+                        class="block text-sm font-medium text-slate-700 mb-2">Kundnamn</label>
                     <input type="text" id="assignCustomerName"
                         class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
                 </div>
 
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-2">Kategori</label>
+                        <label for="assignCategory"
+                            class="block text-sm font-medium text-slate-700 mb-2">Kategori</label>
                         <select id="assignCategory"
                             class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
                             <option value="Villalarm">Villalarm</option>
@@ -459,7 +469,8 @@
                         </select>
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-2">Uppskattad tid</label>
+                        <label for="assignEstimatedTime"
+                            class="block text-sm font-medium text-slate-700 mb-2">Uppskattad tid</label>
                         <div class="relative">
                             <input type="number" id="assignEstimatedTime" min="1" step="1" value="2"
                                 class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all pr-12">
@@ -479,7 +490,7 @@
 
             <!-- Date Selection -->
             <div>
-                <label class="block text-sm font-medium text-slate-700 mb-3">Välj Datum</label>
+                <label for="assignDate" class="block text-sm font-medium text-slate-700 mb-3">Välj Datum</label>
                 <input type="date" id="assignDate"
                     class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all">
             </div>

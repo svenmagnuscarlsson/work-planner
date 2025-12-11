@@ -2,7 +2,7 @@
     let mapInstance = null;
     let markersLayer = null;
 
-    function initMap(elementId, center = [59.3293, 18.0686], zoom = 12) {
+    function initMap(elementId, center = [57.676, 12.025], zoom = 10) {
         if (mapInstance) return mapInstance;
 
         mapInstance = L.map(elementId, {
