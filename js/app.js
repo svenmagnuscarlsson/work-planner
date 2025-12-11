@@ -157,10 +157,17 @@
                     lat = coords.lat;
                     lng = coords.lng;
                 } else {
-                    // Fallback to map center with slight random offset
-                    const mapCenter = window.WP.map.initMap('map').getCenter();
-                    lat = mapCenter.lat + (Math.random() - 0.5) * 0.002;
-                    lng = mapCenter.lng + (Math.random() - 0.5) * 0.002;
+                    // Toast user if address not found
+                    if (window.WP.ui.showToast) {
+                        window.WP.ui.showToast(`Kunde inte hitta exakt position för "${address}". Kontrollera stavningen och försök igen.`, 'error', 5000);
+                    } else {
+                        alert(`Kunde inte hitta exakt position för "${address}".`);
+                    }
+
+                    // Strict validation: Stop saving
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = originalBtnText;
+                    return;
                 }
 
                 const newInst = {

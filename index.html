@@ -31,6 +31,76 @@
     <script src="https://unpkg.com/lucide@latest"></script>
 
     <style>
+        /* Toast Notifications */
+        #toast-container {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            pointer-events: none;
+            /* Allow clicking through container */
+        }
+
+        .toast-message {
+            pointer-events: auto;
+            min-width: 300px;
+            max-width: 400px;
+            padding: 16px;
+            border-radius: 8px;
+            background: white;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            animation: toast-in 0.3s ease-out forwards;
+            border-left: 4px solid #3b82f6;
+            opacity: 0;
+            transform: translateX(100%);
+        }
+
+        .toast-message.toast-error {
+            border-left-color: #ef4444;
+        }
+
+        .toast-message.toast-success {
+            border-left-color: #22c55e;
+        }
+
+        .toast-message.toast-info {
+            border-left-color: #3b82f6;
+        }
+
+        .toast-message.toast-out {
+            animation: toast-out 0.3s ease-in forwards;
+        }
+
+        @keyframes toast-in {
+            from {
+                opacity: 0;
+                transform: translateX(100%);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes toast-out {
+            from {
+                opacity: 1;
+                transform: translateX(0);
+            }
+
+            to {
+                opacity: 0;
+                transform: translateX(100%);
+            }
+        }
+
         /* Custom scrollbar for webkit */
         ::-webkit-scrollbar {
             width: 8px;
@@ -50,45 +120,36 @@
         }
 
         /* Map Marker Styles */
-        .marker-label {
-            background: white;
-            border: 1px solid #cbd5e1;
-            border-radius: 4px;
-            padding: 2px 6px;
-            font-size: 11px;
-            font-weight: 600;
-            white-space: nowrap;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            transform: translateY(-40px);
-            opacity: 0.9;
-            color: #334155;
+        .custom-map-tooltip {
+            background: white !important;
+            border: 1px solid #e2e8f0 !important;
+            border-radius: 8px !important;
+            padding: 8px 12px !important;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+            color: #334155 !important;
+        }
+
+        .custom-map-tooltip:before {
+            border-top-color: #e2e8f0 !important;
         }
 
         .marker-pin {
-            width: 30px;
-            height: 30px;
+            width: 24px;
+            height: 24px;
             border-radius: 50% 50% 50% 0;
             background: #3b82f6;
             position: absolute;
             transform: rotate(-45deg);
             left: 50%;
             top: 50%;
-            margin: -15px 0 0 -15px;
+            margin: -12px 0 0 -12px;
             box-shadow: 0 3px 5px rgba(0, 0, 0, 0.3);
             display: flex;
             align-items: center;
             justify-content: center;
         }
 
-        .marker-pin::after {
-            content: '';
-            width: 14px;
-            height: 14px;
-            margin: 8px 0 0 8px;
-            background: #fff;
-            position: absolute;
-            border-radius: 50%;
-        }
+        /* Removed ::after causing the white blob */
 
         .marker-icon {
             transform: rotate(45deg);
@@ -474,6 +535,9 @@
     <script src="js/technicians.js"></script>
     <script src="js/statistics.js"></script>
     <script src="js/app.js"></script>
+
+    <!-- Toast Container -->
+    <div id="toast-container"></div>
 </body>
 
 </html>

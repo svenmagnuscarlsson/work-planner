@@ -65,17 +65,32 @@
                                 ${iconSvg}
                             </div>
                         </div>
-                        <div class="marker-label">${inst.customer}</div>
                     </div>
                 `,
-                iconSize: [30, 42],
-                iconAnchor: [15, 42]
+                iconSize: [24, 34],
+                iconAnchor: [12, 34]
             });
 
             const marker = L.marker([inst.lat, inst.lng], {
                 icon: customIcon,
                 zIndexOffset: zIndexOffset
             })
+                .bindTooltip(`
+                    <div class="text-sm font-sans">
+                        <div class="font-bold text-slate-800">${inst.customer}</div>
+                        <div class="text-slate-500 text-xs mt-1">${inst.address}</div>
+                        <div class="mt-1">
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${inst.status === 'completed' ? 'bg-green-100 text-green-700' : inst.status === 'planned' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'}">
+                                ${inst.status === 'completed' ? 'Klar' : inst.status === 'planned' ? 'Planerad' : 'Väntande'}
+                            </span>
+                        </div>
+                    </div>
+                `, {
+                    direction: 'top',
+                    offset: [0, -36],
+                    className: 'custom-map-tooltip',
+                    opacity: 1
+                })
                 .on('click', () => {
                     onClickCallback(inst);
                     mapInstance.flyTo([inst.lat, inst.lng], 15, { duration: 0.8, easeLinearity: 0.25 }); // Animate centering
@@ -109,11 +124,16 @@
 
             const response = await fetch(url, {
                 headers: {
-                    'Accept-Language': 'sv' // Prefer Swedish results
+                    'Accept-Language': 'sv', // Prefer Swedish results
+                    'User-Agent': 'MacaPlanner/1.0 (admin@macaplanner.com)' // Proper User-Agent
                 }
             });
 
-            if (!response.ok) throw new Error('Geocoding failed');
+            if (!response.ok) {
+                // Try to get error text if possible
+                const errorText = await response.text().catch(() => 'Unknown error');
+                throw new Error(`Geocoding failed: ${response.status} ${errorText}`);
+            }
 
             const data = await response.json();
 

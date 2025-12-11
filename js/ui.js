@@ -328,6 +328,38 @@
         );
     }
 
+    function showToast(message, type = 'info', duration = 3000) {
+        const container = document.getElementById('toast-container');
+        if (!container) return;
+
+        const toast = document.createElement('div');
+        toast.className = `toast-message toast-${type}`;
+
+        let iconName = 'info';
+        if (type === 'success') iconName = 'check-circle';
+        if (type === 'error') iconName = 'alert-triangle';
+
+        toast.innerHTML = `
+            <div class="text-${type === 'error' ? 'red' : type === 'success' ? 'green' : 'blue'}-500 shrink-0">
+                <i data-lucide="${iconName}" class="w-6 h-6"></i>
+            </div>
+            <div class="flex-1">
+                <p class="text-sm font-medium text-slate-800">${message}</p>
+            </div>
+        `;
+
+        container.appendChild(toast);
+        if (window.lucide) window.lucide.createIcons();
+
+        // Remove after duration
+        setTimeout(() => {
+            toast.classList.add('toast-out');
+            toast.addEventListener('animationend', () => {
+                toast.remove();
+            });
+        }, duration);
+    }
+
     window.WP.ui = {
         renderList,
         renderSkeleton,
@@ -337,6 +369,7 @@
         handleDeleteInstallation,
         formatTime,
         getCategoryColorClass,
-        showConfirmModal
+        showConfirmModal,
+        showToast
     };
 })();
