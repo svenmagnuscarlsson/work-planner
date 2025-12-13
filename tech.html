@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="sv">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MacaPlanner - Tekniker</title>
+
+    <!-- Tailwind -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#0f172a',
+                        accent: '#3b82f6',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Leaflet -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+    <!-- Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        body {
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .tab-active {
+            color: #3b82f6;
+        }
+
+        .tab-inactive {
+            color: #64748b;
+        }
+
+        /* Map full height fix */
+        #map {
+            height: 100%;
+            width: 100%;
+        }
+
+        /* Smooth tab transition */
+        .content-section {
+            display: none;
+            opacity: 0;
+            transition: opacity 0.2s ease-in-out;
+        }
+
+        .content-section.active {
+            display: block;
+            opacity: 1;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-50 h-screen w-screen flex flex-col text-slate-800 overflow-hidden">
+
+    <!-- Header -->
+    <header
+        class="bg-white border-b border-slate-200 p-4 pt-safe-area flex justify-between items-center z-20 shadow-sm shrink-0">
+        <div>
+            <h1 class="font-bold text-lg">Mina Uppdrag</h1>
+            <p class="text-xs text-slate-500" id="currentUserEmail">Laddar...</p>
+        </div>
+        <button id="logoutBtn" class="p-2 text-slate-400 hover:text-slate-700">
+            <i data-lucide="log-out" class="w-5 h-5"></i>
+        </button>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 relative overflow-hidden">
+        <!-- List View -->
+        <div id="listView" class="content-section active h-full overflow-y-auto p-4 space-y-4 pb-24">
+            <!-- Jobs will be injected here -->
+            <div class="text-center py-12 text-slate-400">Laddar uppdrag...</div>
+        </div>
+
+        <!-- Calendar View -->
+        <div id="calendarView" class="content-section h-full overflow-y-auto p-4 space-y-4 pb-24 bg-slate-50">
+            <div id="calendarContent" class="space-y-6">
+                <!-- Calendar content will be injected here -->
+            </div>
+        </div>
+
+        <!-- Map View -->
+        <div id="mapView" class="content-section h-full relative">
+            <div id="map"></div>
+        </div>
+    </main>
+
+    <!-- Bottom Navigation -->
+    <nav class="bg-white border-t border-slate-200 shrink-0 pb-safe-area z-20">
+        <div class="flex justify-around items-center h-16">
+            <button id="tabList"
+                class="flex flex-col items-center justify-center w-full h-full tab-active transition-colors">
+                <i data-lucide="list-todo" class="w-6 h-6 mb-1"></i>
+                <span class="text-xs font-medium">Lista</span>
+            </button>
+            <button id="tabCalendar"
+                class="flex flex-col items-center justify-center w-full h-full tab-inactive hover:bg-slate-50 transition-colors">
+                <i data-lucide="calendar" class="w-6 h-6 mb-1"></i>
+                <span class="text-xs font-medium">Kalender</span>
+            </button>
+            <button id="tabMap"
+                class="flex flex-col items-center justify-center w-full h-full tab-inactive hover:bg-slate-50 transition-colors">
+                <i data-lucide="map" class="w-6 h-6 mb-1"></i>
+                <span class="text-xs font-medium">Karta</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/idb@8/build/umd.js"></script>
+    <script>window.WP = {};</script>
+    <script src="js/db.js"></script>
+    <script src="js/tech-app.js"></script>
+</body>
+
+</html>

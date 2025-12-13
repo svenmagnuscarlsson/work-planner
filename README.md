@@ -17,8 +17,10 @@ En modern och responsiv webbapplikation för att planera, hantera och följa upp
 - Klicka på markörer för snabbinfo och navigering
 
 ### 📅 Kalender & Planering
-- Månadsvy för enkel översikt av beläggning
-- **Drag-and-drop** (teoretiskt stöd) för ombokning
+- **Månads- & Veckovy** för flexibel översikt
+- **Drag-and-drop** funktion för enkel ombokning av planerade jobb
+- **Smart vy**: Begränsad visning (max 2) per dag i månadsvyn för renare layout
+- Expanderbar dagsvy via "+ X till"-knapp som tar dig direkt till veckovyn
 - Tydlig visning av tilldelade tekniker
 
 ### 📊 Statistik & Analys
