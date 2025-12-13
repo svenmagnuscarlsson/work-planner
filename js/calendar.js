@@ -117,7 +117,10 @@
     }
 
     function render(installations) {
-        if (installations) currentData = installations;
+        if (installations) {
+            // Filter out 'pending' installations as requested
+            currentData = installations.filter(inst => inst.status !== 'pending');
+        }
 
         if (currentView === 'week') {
             renderWeekView();
@@ -318,15 +321,38 @@
             });
 
             // Find events for this day
+            // Find events for this day
             const events = currentData.filter(i => i.date === dateStr);
 
             const eventsContainer = document.createElement('div');
             eventsContainer.className = 'mt-8 flex flex-col gap-1.5';
 
-            events.forEach(ev => {
-                const evEl = createEventElement(ev, true);
-                eventsContainer.appendChild(evEl);
-            });
+            const maxEvents = 2;
+            if (events.length <= maxEvents) {
+                events.forEach(ev => {
+                    const evEl = createEventElement(ev, true);
+                    eventsContainer.appendChild(evEl);
+                });
+            } else {
+                const visibleEvents = events.slice(0, maxEvents - 1);
+                visibleEvents.forEach(ev => {
+                    const evEl = createEventElement(ev, true);
+                    eventsContainer.appendChild(evEl);
+                });
+
+                const remaining = events.length - (maxEvents - 1);
+                const moreEl = document.createElement('div');
+                moreEl.className = 'text-[11px] font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 border border-blue-100 rounded px-2 py-1 text-center w-full transition-colors cursor-pointer';
+                moreEl.textContent = `+ ${remaining} till`;
+                moreEl.title = 'Visa veckovy';
+                moreEl.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    // Switch to week view focused on this date
+                    currentDate = new Date(year, month, dayNum);
+                    switchView('week');
+                });
+                eventsContainer.appendChild(moreEl);
+            }
             cell.appendChild(eventsContainer);
         }
 
@@ -342,11 +368,11 @@
 
         // Style based on status
         let colorClass = 'bg-slate-100 text-slate-700 border-slate-200';
-        if (ev.status === 'completed') colorClass = 'bg-green-50 text-green-700 border-green-200';
-        if (ev.status === 'planned') colorClass = 'bg-blue-50 text-blue-700 border-blue-200';
+        if (ev.status === 'completed') colorClass = 'bg-green-100 text-green-800 border-green-300';
+        if (ev.status === 'planned') colorClass = 'bg-blue-100 text-blue-800 border-blue-300';
 
         const cursorClass = isCompleted ? 'cursor-default' : 'cursor-grab active:cursor-grabbing';
-        evEl.className = `text-[10px] p-1.5 rounded border ${colorClass} ${cursorClass} truncate hover:opacity-80 transition-opacity`;
+        evEl.className = `text-[10px] p-1.5 rounded border ${colorClass} ${cursorClass} truncate hover:opacity-80 transition-opacity mb-1`;
 
         const techName = ev.technician ? ev.technician.split(' ')[0] : '?';
 

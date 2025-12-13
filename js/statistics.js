@@ -13,7 +13,7 @@
                 <p class="text-sm text-slate-500 mt-1">Sammanställning av installationer och arbetsbelastning</p>
             </div>
             <div class="flex-1 overflow-y-auto p-6 bg-slate-50">
-                <div id="statsContent" class="space-y-6">
+                <div id="statsContent" class="space-y-4">
                     <!-- Stats will be injected here -->
                 </div>
             </div>
@@ -39,7 +39,7 @@
             </div>
 
             <!-- Time Statistics -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <div class="bg-white rounded-xl border border-slate-200 p-6">
                     <h3 class="font-bold text-slate-800 mb-4 flex items-center gap-2">
                         <i data-lucide="clock" class="w-5 h-5 text-slate-500"></i>
@@ -84,6 +84,17 @@
                 </div>
             </div>
 
+            <!-- Weekly Overview -->
+            <div class="bg-white rounded-xl border border-slate-200 p-6">
+                <h3 class="font-bold text-slate-800 mb-4 flex items-center gap-2">
+                    <i data-lucide="calendar-range" class="w-5 h-5 text-slate-500"></i>
+                    Veckoöversikt
+                </h3>
+                <div class="space-y-3">
+                    ${renderWeeklyStats(stats.weeklyStats)}
+                </div>
+            </div>
+
             <!-- Monthly Overview -->
             <div class="bg-white rounded-xl border border-slate-200 p-6">
                 <h3 class="font-bold text-slate-800 mb-4 flex items-center gap-2">
@@ -110,7 +121,8 @@
             plannedTime: 0,
             categories: {},
             technicianStats: {},
-            monthlyStats: {}
+            monthlyStats: {},
+            weeklyStats: {}
         };
 
         installations.forEach(inst => {
@@ -141,12 +153,25 @@
 
             // Monthly stats
             if (inst.date) {
+                const dateObj = new Date(inst.date);
                 const month = inst.date.substring(0, 7); // YYYY-MM
                 if (!stats.monthlyStats[month]) {
                     stats.monthlyStats[month] = { total: 0, completed: 0, planned: 0, pending: 0 };
                 }
                 stats.monthlyStats[month].total++;
                 stats.monthlyStats[month][inst.status]++;
+
+                // Weekly stats
+                const weekNum = getWeekNumber(dateObj);
+                const yearStep = dateObj.getFullYear();
+                // Simple key: "2025-W51"
+                const weekKey = `${yearStep}-W${weekNum}`;
+
+                if (!stats.weeklyStats[weekKey]) {
+                    stats.weeklyStats[weekKey] = { total: 0, completed: 0, planned: 0, pending: 0, week: weekNum, year: yearStep };
+                }
+                stats.weeklyStats[weekKey].total++;
+                stats.weeklyStats[weekKey][inst.status]++;
             }
         });
 
@@ -156,6 +181,66 @@
         }
 
         return stats;
+    }
+
+    function getWeekNumber(d) {
+        d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+        d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+        const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+        const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+        return weekNo;
+    }
+
+    function renderWeeklyStats(weeklyStats) {
+        const weeks = Object.keys(weeklyStats).sort().reverse().slice(0, 8); // Last 8 weeks
+
+        if (weeks.length === 0) {
+            return '<p class="text-slate-500 text-sm">Ingen veckodata tillgänglig ännu.</p>';
+        }
+
+        return weeks.map(weekKey => {
+            const data = weeklyStats[weekKey];
+            return `
+                <div class="flex items-center gap-4 p-3 bg-slate-50 rounded-lg">
+                    <div class="w-24 shrink-0">
+                        <p class="font-medium text-slate-800">Vecka ${data.week}</p>
+                        <p class="text-xs text-slate-500">${data.year}</p>
+                    </div>
+                    <div class="flex-1 flex gap-6">
+                        <div class="flex items-center gap-2">
+                            <div class="w-3 h-3 rounded-full bg-amber-400"></div>
+                            <span class="text-sm text-slate-600">Väntande: <strong>${data.pending || 0}</strong></span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <div class="w-3 h-3 rounded-full bg-blue-500"></div>
+                            <span class="text-sm text-slate-600">Planerade: <strong>${data.planned || 0}</strong></span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                            <span class="text-sm text-slate-600">Klara: <strong>${data.completed || 0}</strong></span>
+                        </div>
+                    </div>
+                    <div class="text-right shrink-0">
+                        <p class="font-bold text-slate-800">${data.total}</p>
+                        <p class="text-xs text-slate-500">totalt</p>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function renderMonthlyStats(monthlyStats) {
+        return `
+            <div class="bg-white rounded-xl border border-slate-200 p-4 flex items-center gap-4">
+                <div class="w-12 h-12 rounded-lg ${colorClass} flex items-center justify-center">
+                    <i data-lucide="${icon}" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <p class="text-2xl font-bold text-slate-800">${value}</p>
+                    <p class="text-sm text-slate-500">${title}</p>
+                </div>
+            </div>
+        `;
     }
 
     function renderKPICard(title, value, icon, colorClass) {

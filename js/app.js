@@ -27,8 +27,10 @@
 
         // 4. Listeners
         setupFilters();
+        setupFilters();
         setupMobilenav();
         setupSearch();
+        ui.initResizablePanel();
 
         // 5. Lucide icons
         if (window.lucide) {
@@ -116,6 +118,10 @@
         const cancelBtn = document.getElementById('cancelModalBtn');
         const form = document.getElementById('newInstallationForm');
 
+        if (window.WP.setupAddressAutocomplete) {
+            window.WP.setupAddressAutocomplete('newAddress');
+        }
+
         function open() {
             modal.classList.remove('hidden');
         }
@@ -150,24 +156,32 @@
                 const address = formData.get('address');
                 let lat, lng;
 
-                // Attempt Geocoding
-                const coords = await window.WP.map.geocodeAddress(address);
+                const addressInput = document.getElementById('newAddress');
 
-                if (coords) {
-                    lat = coords.lat;
-                    lng = coords.lng;
+                // Use coordinates from autocomplete if available
+                if (addressInput && addressInput.dataset.lat && addressInput.dataset.lng) {
+                    lat = parseFloat(addressInput.dataset.lat);
+                    lng = parseFloat(addressInput.dataset.lng);
                 } else {
-                    // Toast user if address not found
-                    if (window.WP.ui.showToast) {
-                        window.WP.ui.showToast(`Kunde inte hitta exakt position för "${address}". Kontrollera stavningen och försök igen.`, 'error', 5000);
-                    } else {
-                        alert(`Kunde inte hitta exakt position för "${address}".`);
-                    }
+                    // Fallback to manual Geocoding
+                    const coords = await window.WP.map.geocodeAddress(address);
 
-                    // Strict validation: Stop saving
-                    submitBtn.disabled = false;
-                    submitBtn.textContent = originalBtnText;
-                    return;
+                    if (coords) {
+                        lat = coords.lat;
+                        lng = coords.lng;
+                    } else {
+                        // Toast user if address not found
+                        if (window.WP.ui.showToast) {
+                            window.WP.ui.showToast(`Kunde inte hitta exakt position för "${address}". Kontrollera stavningen och försök igen.`, 'error', 5000);
+                        } else {
+                            alert(`Kunde inte hitta exakt position för "${address}".`);
+                        }
+
+                        // Strict validation: Stop saving
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = originalBtnText;
+                        return;
+                    }
                 }
 
                 const newInst = {
@@ -189,8 +203,8 @@
                 allInstallations = await window.WP.db.getInstallations();
                 refreshUI(getFilteredData());
 
-                // Fly to new location if geocoded successfully
-                if (coords) {
+                // Fly to new location if available
+                if (lat && lng) {
                     window.WP.map.flyTo(lat, lng);
                 }
 

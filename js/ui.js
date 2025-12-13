@@ -252,6 +252,11 @@
                 const technicians = await window.WP.technicians.getAll();
                 techListContainer.innerHTML = '';
 
+                if (technicians.length === 0) {
+                    techListContainer.innerHTML = '<p class="text-sm text-red-500">Inga tekniker hittades i systemet.</p>';
+                    showToast('Det finns inga tekniker att tilldela. Lägg till tekniker först.', 'error');
+                }
+
                 technicians.forEach(t => {
                     const label = document.createElement('label');
                     label.className = 'flex items-center p-3 border border-slate-200 rounded-lg hover:bg-slate-50 cursor-pointer transition-colors has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50 has-[:checked]:ring-1 has-[:checked]:ring-blue-500';
@@ -365,4 +370,57 @@
         showConfirmModal,
         showToast
     };
+
+    function initResizablePanel() {
+        const panel = document.getElementById('listPanel');
+        const handle = document.getElementById('resizeHandle');
+
+        if (!panel || !handle) return;
+
+        let isResizing = false;
+
+        handle.addEventListener('mousedown', (e) => {
+            isResizing = true;
+            document.body.style.cursor = 'ew-resize';
+            handle.classList.add('bg-blue-500'); // Force active state
+            e.preventDefault();
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isResizing) return;
+
+            // Calculate new width relative to the panel's start position
+            // This accounts for the sidebar or any other layout offsets
+            const panelRect = panel.getBoundingClientRect();
+            const newWidth = e.clientX - panelRect.left;
+
+            // Constrain
+            if (newWidth >= 200 && newWidth <= 600) {
+                panel.style.width = `${newWidth}px`;
+                // Invalidate leaflet map size if it exists, to prevent rendering issues
+                if (window.WP && window.WP.map) {
+                    requestAnimationFrame(() => {
+                        const mapInstance = window.WP.map.initMap('map');
+                        if (mapInstance) mapInstance.invalidateSize();
+                    });
+                }
+            }
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (isResizing) {
+                isResizing = false;
+                document.body.style.cursor = 'default';
+                handle.classList.remove('bg-blue-500');
+
+                // Final resize check
+                if (window.WP && window.WP.map) {
+                    const mapInstance = window.WP.map.initMap('map');
+                    if (mapInstance) mapInstance.invalidateSize();
+                }
+            }
+        });
+    }
+
+    window.WP.ui.initResizablePanel = initResizablePanel;
 })();
